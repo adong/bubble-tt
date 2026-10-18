@@ -606,7 +606,7 @@
         break;
       case 'escape':
         this.burst(ev.x, ev.y + 0.6, '#ff6060', 10, 3.5, 0.24);
-        this.popup('GRR!', ev.x, ev.y + 2, '#ff6060');
+        this.popup(Kit.lang.t('GRR!'), ev.x, ev.y + 2, '#ff6060'); // canvas text: translated where it's drawn
         break;
       case 'letter':
         this.popup(ev.letter + '!', ev.x, ev.y + 0.8, '#ff7ab8');
@@ -621,7 +621,7 @@
         this.burst(ev.x, ev.y + 0.6, '#ffffff', 10, 3, 0.25);
         break;
       case 'boop':
-        this.popup('TICKLE!', ev.x, ev.y + 2.2, '#e6dcff');
+        this.popup(Kit.lang.t('TICKLE!'), ev.x, ev.y + 2.2, '#e6dcff');
         break;
       case 'clear':
         this.confetti(70);
@@ -649,7 +649,7 @@
         const v = sim.boss && this.actors.get(sim.boss);
         if (v) v.flash = 1;
         this.burst(ev.x, ev.y, '#ffffff', 6, 3, 0.2);
-        if (ev.dmg > 1) this.popup('ZAP!', ev.x, ev.y + 1, '#ffe46a');
+        if (ev.dmg > 1) this.popup(Kit.lang.t('ZAP!'), ev.x, ev.y + 1, '#ffe46a');
         break;
       }
       case 'bossBump':

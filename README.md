@@ -3,6 +3,7 @@
 [![Bubble TT title screen](docs/screenshot.jpg)](https://adong.github.io/bubble-tt/)
 
 Press **?** any time (or tap the round **?** button on the left edge) to see the keys. The game waits while you look.
+Tap **中文 / EN** under it to switch between English and 中文 (the dashboard and every game remember the choice).
 
 A single-screen bubble-blowing platformer starring Teddy and Tommy, built with Claude Code from plain JavaScript and
 Three.js. Blow a bubble at a silly zombie, robot or bouncy blob, and he's stuck inside, wiggling. Pop the bubble and he
@@ -215,6 +216,8 @@ js/view.js       the Three.js scene: builds each level, the kids, enemies, Big Z
 js/poses.js      extra poses on top of Kit.people.pose (stand, blow, dizzy, kick, cheer)
 js/sfx.js        sounds made with Kit.sound.tone / hiss (blub, pop, boing, combo, zap, splash, giggle...)
 js/game.js       screens, keyboard and touch, HUD, companion button, toasts, saving, title demo, test hooks
+js/keys.js       the keys the ? panel shows (Kit.help)
+js/zh.js         中文: every word on the page, the level and world names and tips, the ? panel (Kit.lang)
 tools/check.js   the level check (node tools/check.js)
 kit/             copy of ~/claude-games/kit (python3 ../kit/tools/sync.py .); don't edit it here
 docs/            screenshots

@@ -124,6 +124,9 @@
   .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 18px;
     background: radial-gradient(ellipse at center, rgba(20,18,40,0.25), rgba(20,18,40,0.72)); overflow-y: auto; }
   .screen > * { flex-shrink: 0; }
+  /* centred when it fits, scrollable from the top when it doesn't (plain flex centring would cut the top off) */
+  .screen > :first-child { margin-top: auto; }
+  .screen > :last-child { margin-bottom: auto; }
   .logo { font-family: var(--display); font-weight: 400; font-size: clamp(54px, 11vw, 120px); line-height: 0.95; letter-spacing: 1px; text-align: center;
     color: #fff; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink), 0 0 30px rgba(127,232,255,0.8); }
   .logo .a { color: var(--teddy-l); }
@@ -181,6 +184,21 @@
     #callBtn { padding: 4px; }
     body.touch #callBtn { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 96px); }
   }
+  /* short screens (a phone on its side) */
+  @media (max-height: 520px) {
+    .screen { gap: 7px; padding: 8px; }
+    .logo { font-size: clamp(36px, 11vh, 64px); }
+    .sub { font-size: 15px; }
+    .kid { width: 140px; padding: 6px 8px 8px; border-radius: 18px; }
+    .kid img { width: 60px; height: 60px; }
+    .kid b { font-size: 20px; }
+    .big { font-size: 18px; padding: 8px 18px; }
+    .big.two img { width: 34px; height: 34px; }
+    .keys { display: none; }
+    .card { padding: 14px 20px; gap: 10px; }
+    .card h2 { font-size: clamp(26px, 9vh, 40px); }
+    #banner { padding: 10px 22px 12px; }
+  }
   body.calm * { transition: none !important; animation: none !important; }
 </style>
 </head>
@@ -216,7 +234,7 @@
 <div id="banner" class="hidden"><small id="bnNum">LEVEL 1</small><h2 id="bnName"></h2><p id="bnTip"></p></div>
 
 <div id="title" class="screen">
-  <h1 class="logo" id="logo"></h1>
+  <h1 class="logo" id="logo" data-no-lang></h1>
   <p class="sub" id="subtitle"></p>
   <div class="picks">
     <button class="kid t" data-hero="teddy"><img alt=""><b>TEDDY</b><small>1 PLAYER</small></button>
@@ -229,7 +247,7 @@
     <button class="chip" id="btnMute2">🔊</button>
   </div>
   <p class="best" id="bestLine"></p>
-  <p class="keys">
+  <p class="keys" data-zh="<b>Teddy：</b> <kbd>A</kbd> <kbd>D</kbd> 走 · <kbd>W</kbd> 跳 · <kbd>F</kbd> 吹泡泡 &nbsp;|&nbsp; <b>Tommy：</b> <kbd>←</kbd> <kbd>→</kbd> 走 · <kbd>↑</kbd> 跳 · <kbd>L</kbd> 吹泡泡<br>单人：两套按键都能用，也可以按 <kbd>空格</kbd> 跳 · <kbd>T</kbd> 叫兄弟来帮忙（双人时是击掌）· <kbd>P</kbd> 暂停 · <kbd>M</kbd> 声音">
     <b>Teddy:</b> <kbd>A</kbd> <kbd>D</kbd> walk · <kbd>W</kbd> jump · <kbd>F</kbd> bubble &nbsp;|&nbsp;
     <b>Tommy:</b> <kbd>←</kbd> <kbd>→</kbd> walk · <kbd>↑</kbd> jump · <kbd>L</kbd> bubble<br>
     1 player: either set, or <kbd>Space</kbd> to jump · <kbd>T</kbd> calls your brother (high five in 2 players) · <kbd>P</kbd> pause · <kbd>M</kbd> sound
@@ -277,6 +295,7 @@
 <script src="kit/roster.js"></script>
 <script src="kit/portraits.js"></script>
 <script src="kit/sound.js"></script>
+<script src="kit/lang.js"></script>
 <script src="kit/help.js"></script>
 <script src="js/title.js"></script>
 <script src="js/sim.js"></script>
@@ -287,5 +306,6 @@
 <script src="js/view.js"></script>
 <script src="js/game.js"></script>
 <script src="js/keys.js"></script>
+<script src="js/zh.js"></script>
 </body>
 </html>

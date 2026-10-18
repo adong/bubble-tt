@@ -124,6 +124,9 @@
   .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 18px;
     background: radial-gradient(ellipse at center, rgba(20,18,40,0.25), rgba(20,18,40,0.72)); overflow-y: auto; }
   .screen > * { flex-shrink: 0; }
+  /* centred when it fits, scrollable from the top when it doesn't (plain flex centring would cut the top off) */
+  .screen > :first-child { margin-top: auto; }
+  .screen > :last-child { margin-bottom: auto; }
   .logo { font-family: var(--display); font-weight: 400; font-size: clamp(54px, 11vw, 120px); line-height: 0.95; letter-spacing: 1px; text-align: center;
     color: #fff; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink), 0 0 30px rgba(127,232,255,0.8); }
   .logo .a { color: var(--teddy-l); }
@@ -181,6 +184,21 @@
     #callBtn { padding: 4px; }
     body.touch #callBtn { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 96px); }
   }
+  /* short screens (a phone on its side) */
+  @media (max-height: 520px) {
+    .screen { gap: 7px; padding: 8px; }
+    .logo { font-size: clamp(36px, 11vh, 64px); }
+    .sub { font-size: 15px; }
+    .kid { width: 140px; padding: 6px 8px 8px; border-radius: 18px; }
+    .kid img { width: 60px; height: 60px; }
+    .kid b { font-size: 20px; }
+    .big { font-size: 18px; padding: 8px 18px; }
+    .big.two img { width: 34px; height: 34px; }
+    .keys { display: none; }
+    .card { padding: 14px 20px; gap: 10px; }
+    .card h2 { font-size: clamp(26px, 9vh, 40px); }
+    #banner { padding: 10px 22px 12px; }
+  }
   body.calm * { transition: none !important; animation: none !important; }
 </style>
 </head>
@@ -216,7 +234,7 @@
 <div id="banner" class="hidden"><small id="bnNum">LEVEL 1</small><h2 id="bnName"></h2><p id="bnTip"></p></div>
 
 <div id="title" class="screen">
-  <h1 class="logo" id="logo"></h1>
+  <h1 class="logo" id="logo" data-no-lang></h1>
   <p class="sub" id="subtitle"></p>
   <div class="picks">
     <button class="kid t" data-hero="teddy"><img alt=""><b>TEDDY</b><small>1 PLAYER</small></button>
@@ -229,7 +247,7 @@
     <button class="chip" id="btnMute2">🔊</button>
   </div>
   <p class="best" id="bestLine"></p>
-  <p class="keys">
+  <p class="keys" data-zh="<b>Teddy：</b> <kbd>A</kbd> <kbd>D</kbd> 走 · <kbd>W</kbd> 跳 · <kbd>F</kbd> 吹泡泡 &nbsp;|&nbsp; <b>Tommy：</b> <kbd>←</kbd> <kbd>→</kbd> 走 · <kbd>↑</kbd> 跳 · <kbd>L</kbd> 吹泡泡<br>单人：两套按键都能用，也可以按 <kbd>空格</kbd> 跳 · <kbd>T</kbd> 叫兄弟来帮忙（双人时是击掌）· <kbd>P</kbd> 暂停 · <kbd>M</kbd> 声音">
     <b>Teddy:</b> <kbd>A</kbd> <kbd>D</kbd> walk · <kbd>W</kbd> jump · <kbd>F</kbd> bubble &nbsp;|&nbsp;
     <b>Tommy:</b> <kbd>←</kbd> <kbd>→</kbd> walk · <kbd>↑</kbd> jump · <kbd>L</kbd> bubble<br>
     1 player: either set, or <kbd>Space</kbd> to jump · <kbd>T</kbd> calls your brother (high five in 2 players) · <kbd>P</kbd> pause · <kbd>M</kbd> sound
@@ -1160,6 +1178,238 @@
 
 </script>
 <script>
+/* Kit.lang: every game in English or 中文.
+
+   - The choice is remembered under one localStorage key ('claudeGames.lang'), shared by every game and the dashboard on
+     the same site, so switching on the dashboard switches the games too. A first visit is in English.
+   - A small 中文 / EN button sits under the ? button (and the ? panel has one too). Switching is live: no reload.
+   - Page text translates by itself. A dictionary (English -> 中文) is checked against every text node and every
+     placeholder, title and aria-label, now and whenever the game changes the page later (a MutationObserver), so a
+     game that sets `el.textContent = 'TOMMY SAVED YOU!'` needs no code change, just a dictionary entry.
+   - Text with numbers or names in it ("TEDDY'S BEST", "3 HITS!") uses rules: a regex and a replacement.
+   - Text the game draws on a canvas (3D word bursts, signs) never reaches the page, so wrap it: Kit.lang.t('POW!').
+   - An element whose HTML needs a different word order in Chinese can carry the whole translation: data-zh="...".
+     The element's English HTML is kept, and swapped back when switching to English.
+   - data-no-lang on an element keeps its text (and its children's) as it is.
+
+   In a game, load kit/lang.js right after kit/sound.js (before kit/help.js), and put the game's words in js/zh.js:
+
+     Kit.lang.add({ 'PLAY': '开始', 'TOMMY SAVED YOU!': 'TOMMY 救了你！' });
+     Kit.lang.rule(/^(\w+)'S BEST$/, '$1 的最高分');
+     Kit.lang.keep(['TEDDY', 'TOMMY']);            // names that stay as they are
+     Kit.lang.onChange((lang) => rebuildSigns());  // only for canvas text made once and kept
+
+   Kit.lang.untranslated() lists the English still showing on the page (and canvas text asked for through t() with no
+   entry): switch to 中文, visit every screen, and run it until it comes back empty. */
+(function () {
+  const Kit = (window.Kit = window.Kit || {});
+  const KEY = 'claudeGames.lang';
+
+  let lang = '';
+  try { lang = localStorage.getItem(KEY) || ''; } catch (e) { /* storage blocked */ }
+  if (lang !== 'en' && lang !== 'zh') lang = 'en'; // English until someone picks 中文 (Alan's choice)
+
+  const dict = new Map();
+  const rules = [];
+  const kept = new Set();
+  const askedMissing = new Set();
+  const listeners = [];
+
+  // Words every game shares: the ? panel, menus, buttons. A game's own js/zh.js can override any of them.
+  const COMMON = {
+    '? KEYS': '? 按键', 'these keys': '看按键', 'or tap the round': '或点圆形', 'button': '按钮',
+    'or': '或', 'then': '然后', 'hold': '按住', 'tap': '点', 'click': '点击', 'swipe': '滑动', 'drag': '拖动',
+    'double-tap': '连按两下', 'and': '和', 'longer': '更久', 'Space': '空格', 'Enter': '回车',
+    'Player 1': '玩家 1', 'Player 2': '玩家 2', 'Teddy': 'Teddy', 'Tommy': 'Tommy',
+    'move': '移动', 'walk': '走', 'run': '跑', 'jump': '跳', 'pause': '暂停', 'sound on / off': '声音 开 / 关',
+    'pause · sound': '暂停 · 声音', 'call your brother': '叫兄弟来帮忙', 'call your brother · high five': '叫兄弟 · 击掌',
+    'easy mode (title)': '简单模式（标题页）', 'In 1 player both sets of keys work.': '单人时两套按键都能用。',
+    'PLAY': '开始', '▶ PLAY': '▶ 开始', 'PAUSED': '暂停中', 'RESUME': '继续', '▶ RESUME': '▶ 继续', 'MENU': '菜单',
+    'EASY': '简单', 'NORMAL': '普通', '1 PLAYER': '单人', '2 PLAYERS': '双人', 'BEST': '最高分', 'SCORE': '得分',
+    'GAME OVER': '游戏结束', 'PLAY AGAIN': '再玩一次', 'NEXT': '下一关', 'BACK': '返回', 'HOME': '主页', 'GO!': '开始！',
+    'READY?': '准备好了吗？', 'YOU WIN!': '你赢了！', 'TAP ME!': '点我！', 'built with': '制作工具：',
+    'Keys (?)': '按键 (?)', 'Show the keys': '看按键',
+  };
+  for (const k in COMMON) dict.set(k, COMMON[k]);
+
+  // ---------- translating one string ----------
+  const looksEnglish = (s) => /[A-Za-z]{2,}/.test(s);
+  function lookup(key) {
+    if (dict.has(key)) return dict.get(key);
+    for (const [re, rep] of rules) if (re.test(key)) return key.replace(re, rep);
+    return null;
+  }
+  // t('POW!') -> '砰！' in 中文 (from the dictionary), t('Score', '得分') -> an inline pair. Spaces around the words stay.
+  function t(en, zh) {
+    if (zh !== undefined) return lang === 'zh' ? zh : en;
+    if (lang !== 'zh' || en == null) return en;
+    const s = String(en), key = s.trim();
+    if (!key || kept.has(key)) return s;
+    const out = lookup(key);
+    if (out == null) { if (looksEnglish(key)) askedMissing.add(key); return s; }
+    return s.replace(key, out);
+  }
+
+  // ---------- the page ----------
+  const SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'NOSCRIPT', 'CODE', 'PRE']);
+  const ATTRS = ['placeholder', 'title', 'aria-label'];
+  const enText = new WeakMap(); // text node -> its English
+  const ourText = new WeakMap(); // text node -> what we last wrote into it
+
+  function skipped(el) {
+    return !el || SKIP.has(el.nodeName) || (el.closest && el.closest('[data-no-lang],[data-zh],#kit-help'));
+  }
+  function doText(n) {
+    if (skipped(n.parentNode)) return;
+    const cur = n.nodeValue;
+    let en = enText.get(n);
+    if (en === undefined || cur !== ourText.get(n)) { en = cur; enText.set(n, en); } // new, or the game rewrote it
+    const out = lang === 'zh' ? t(en) : en;
+    ourText.set(n, out);
+    if (out !== cur) n.nodeValue = out;
+  }
+  function doElement(el) {
+    if (el.hasAttribute('data-zh')) {
+      if (!el.hasAttribute('data-en')) el.setAttribute('data-en', el.innerHTML);
+      const html = lang === 'zh' ? el.getAttribute('data-zh') : el.getAttribute('data-en');
+      if (el.innerHTML !== html) el.innerHTML = html;
+    }
+    if (skipped(el)) return;
+    for (const a of ATTRS) {
+      if (!el.hasAttribute(a)) continue;
+      const store = 'data-en-' + a;
+      if (!el.hasAttribute(store) || el.getAttribute(a) !== el.getAttribute('data-out-' + a)) el.setAttribute(store, el.getAttribute(a));
+      const out = lang === 'zh' ? t(el.getAttribute(store)) : el.getAttribute(store);
+      el.setAttribute('data-out-' + a, out);
+      if (el.getAttribute(a) !== out) el.setAttribute(a, out);
+    }
+  }
+  function walk(root) {
+    if (!root) return;
+    if (root.nodeType === 3) return doText(root);
+    if (root.nodeType !== 1 && root.nodeType !== 9 && root.nodeType !== 11) return;
+    if (root.nodeType === 1) doElement(root);
+    if (root.nodeType === 1 && SKIP.has(root.nodeName)) return;
+    const it = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = it.nextNode())) (n.nodeType === 3 ? doText(n) : doElement(n));
+  }
+  // Our own writes come back here too (observers report later), and stop at once: the text matches what we wrote.
+  const observer = new MutationObserver((list) => {
+    for (const m of list) {
+      if (m.type === 'characterData') doText(m.target);
+      else if (m.type === 'attributes') doElement(m.target);
+      else for (const n of m.addedNodes) walk(n);
+    }
+  });
+
+  function applyAll() {
+    document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : 'en';
+    document.documentElement.classList.toggle('lang-zh', lang === 'zh');
+    if (document.body) walk(document.body);
+    if (btn) btn.textContent = lang === 'zh' ? 'EN' : '中文';
+  }
+
+  // ---------- switching ----------
+  function set(l) {
+    if (l !== 'en' && l !== 'zh') return lang;
+    lang = l;
+    try { localStorage.setItem(KEY, l); } catch (e) { /* storage blocked */ }
+    applyAll();
+    for (const cb of listeners) { try { cb(lang); } catch (e) { console.error(e); } }
+    return lang;
+  }
+  const toggle = () => set(lang === 'zh' ? 'en' : 'zh');
+
+  // ---------- the 中文 / EN button, under the ? button ----------
+  let btn = null, btnOpts = {};
+  const CSS = `
+#kit-lang-btn { position: fixed; z-index: 2147482000; min-width: 40px; height: 28px; padding: 0 6px; border-radius: 14px;
+  border: 3px solid #fff; background: rgba(20, 18, 31, 0.62); color: #fff; cursor: pointer;
+  font: 800 12px/22px 'Rubik', system-ui, -apple-system, sans-serif; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+#kit-lang-btn:hover { background: #ffd400; color: #14121f; border-color: #14121f; }`;
+  function placeButton() {
+    if (btnOpts.button === false) { if (btn) btn.style.display = 'none'; return; }
+    if (!btn) {
+      const style = document.createElement('style');
+      style.textContent = CSS;
+      document.head.appendChild(style);
+      btn = document.createElement('button');
+      btn.id = 'kit-lang-btn';
+      btn.type = 'button';
+      btn.setAttribute('data-no-lang', '');
+      btn.setAttribute('aria-label', 'English / 中文');
+      document.body.appendChild(btn);
+    }
+    const pos = Object.assign({ top: 'calc(50% + 28px)', left: 'max(10px, env(safe-area-inset-left))' }, btnOpts.button || {});
+    for (const side of ['top', 'right', 'bottom', 'left']) btn.style[side] = pos[side] == null ? '' : pos[side];
+    btn.style.display = '';
+    btn.textContent = lang === 'zh' ? 'EN' : '中文';
+  }
+  // Taps on the button never reach the game (like the ? button): one click switches the language.
+  for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'click', 'dblclick']) {
+    window.addEventListener(type, (e) => {
+      if (!btn || !btn.contains(e.target)) return;
+      e.stopImmediatePropagation();
+      if (e.type === 'click') toggle();
+    }, { capture: true, passive: false });
+  }
+
+  // ---------- start ----------
+  function start() {
+    applyAll();
+    placeButton();
+    observer.observe(document.body, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ATTRS });
+  }
+  if (document.body) start();
+  else document.addEventListener('DOMContentLoaded', start, { once: true });
+
+  // ---------- for the game, and for checking ----------
+  // Judged by each text's English original against the dictionary as it is now, so strings asked for before the
+  // game's js/zh.js loaded, and translations that keep a name ("Claude 自动驾驶"), don't show up.
+  const needs = (s) => !!s && !kept.has(s) && looksEnglish(s) && lookup(s) == null;
+  function untranslated() {
+    const found = new Set([...askedMissing].filter(needs));
+    if (document.body) {
+      const it = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+      let n;
+      while ((n = it.nextNode())) {
+        if (n.nodeType === 1) {
+          if (skipped(n)) continue;
+          for (const a of ATTRS) {
+            const en = (n.getAttribute('data-en-' + a) || n.getAttribute(a) || '').trim();
+            if (n.hasAttribute(a) && needs(en)) found.add(en);
+          }
+          continue;
+        }
+        const en = (enText.get(n) ?? n.nodeValue).trim();
+        if (skipped(n.parentNode) || !needs(en)) continue;
+        found.add(en);
+      }
+    }
+    return [...found];
+  }
+
+  Kit.lang = {
+    get: () => lang,
+    is: (l) => lang === l,
+    set,
+    toggle,
+    t,
+    add(d) { for (const k in d) dict.set(k.trim(), d[k]); if (document.body) applyAll(); },
+    rule(re, rep) { rules.push([re, rep]); if (document.body) applyAll(); },
+    keep(list) { for (const s of list) kept.add(String(s).trim()); },
+    onChange(cb) { listeners.push(cb); },
+    setup(o) { btnOpts = o || {}; if (document.body) placeButton(); },
+    apply: applyAll,
+    untranslated,
+    button: () => btn,
+  };
+})();
+
+</script>
+<script>
 /* Kit.help: press ? (Shift + /) in any game, or tap the round ? button, to see that game's keys.
 
    The game freezes while the panel is open, without the game having to know:
@@ -1271,7 +1521,9 @@
     if (!isOpen && !onBtn) return;
     e.stopImmediatePropagation(); // no preventDefault on touches: a phone would then never send the click
     if (e.type === 'contextmenu') e.preventDefault();
-    if (e.type === 'click') (isOpen ? close() : open()); // pointerdown and pointerup are swallowed, so one tap is one click
+    if (e.type !== 'click') return; // pointerdown and pointerup are swallowed, so one tap is one click
+    if (isOpen && Kit.lang && e.target.closest && e.target.closest('#kit-help .kh-lang')) Kit.lang.toggle(); // stays open
+    else (isOpen ? close() : open());
   }
   for (const t of POINTER) window.addEventListener(t, onPointer, { capture: true, passive: false });
 
@@ -1285,7 +1537,11 @@
   border-radius: 22px; background: rgba(20, 18, 31, 0.94); border: 3px solid #fff; box-shadow: 0 8px 0 #000, 0 18px 40px rgba(0, 0, 0, 0.45);
   animation: kh-pop 0.22s cubic-bezier(.2, 1.5, .4, 1); }
 @keyframes kh-pop { from { transform: scale(0.85); } } /* no fade: the card shows even where animations don't run */
+#kit-help .kh-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 #kit-help .kh-tag { font-size: 12px; font-weight: 800; letter-spacing: 2px; color: #18d4ff; }
+#kit-help .kh-lang { padding: 4px 12px; border-radius: 999px; border: 2px solid #fff; background: transparent; color: #fff;
+  font: 800 13px 'Rubik', system-ui, sans-serif; cursor: pointer; }
+#kit-help .kh-lang:hover { background: #ffd400; color: #14121f; border-color: #14121f; }
 #kit-help h2 { margin: 2px 0 12px; font-family: 'Rubik', system-ui, sans-serif; font-weight: 800; /* not Bungee: it's all caps and would lose the TT in FlaTTy */
   font-size: clamp(24px, 5vw, 32px); line-height: 1.05; color: #ffd400; text-shadow: 0 3px 0 #000; }
 #kit-help table { width: 100%; border-collapse: collapse; }
@@ -1321,28 +1577,36 @@
 
   const PLAIN = new Set(['+', '·', ',', '–']);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // English or 中文 through Kit.lang (kit/lang.js) when the game loads it: t(text) uses the game's dictionary,
+  // t(en, zh) is an inline pair for the panel's own words.
+  const t = (en, zh) => (Kit.lang ? Kit.lang.t(en, zh) : en);
+  const plain = (w) => /^[a-z][a-z-]+$/.test(w) || PLAIN.has(w);
   function keycaps(str) {
     if (!str) return '';
-    return String(str).split(/\s+/).filter(Boolean)
-      .map((w) => (/^[a-z][a-z-]+$/.test(w) || PLAIN.has(w) ? ` ${esc(w)} ` : `<kbd>${esc(w)}</kbd>`))
-      .join('');
+    const words = String(str).split(/\s+/).filter(Boolean);
+    if (words.every(plain)) return ` ${esc(t(String(str)))} `; // all words ("hold the mouse button and drag"): translate as one
+    return words.map((w) => (plain(w) ? ` ${esc(t(w))} ` : `<kbd>${esc(t(w))}</kbd>`)).join('');
   }
   function render() {
     const o = opts;
     const cols = o.cols || [];
-    let html = `<div class="kh-card"><div class="kh-tag">? KEYS</div><h2>${esc(o.title || '')}</h2><table>`;
-    if (cols.length) html += `<tr><th></th>${cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr>`;
+    const zh = Kit.lang && Kit.lang.is('zh');
+    let html = `<div class="kh-card"><div class="kh-top"><div class="kh-tag">${t('? KEYS', '? 按键')}</div>`;
+    if (Kit.lang) html += `<button type="button" class="kh-lang">🌐 ${zh ? 'English' : '中文'}</button>`;
+    html += `</div><h2>${esc(t(o.title || ''))}</h2><table>`;
+    if (cols.length) html += `<tr><th></th>${cols.map((c) => `<th>${esc(t(c))}</th>`).join('')}</tr>`;
     for (const row of o.keys || []) {
       const [label, ...ks] = row;
-      html += `<tr><td>${esc(label)}</td>${ks.map((k) => `<td class="kh-k">${keycaps(k)}</td>`).join('')}</tr>`;
+      html += `<tr><td>${esc(t(label))}</td>${ks.map((k) => `<td class="kh-k">${keycaps(k)}</td>`).join('')}</tr>`;
     }
-    html += `<tr><td>these keys</td><td class="kh-k" colspan="${Math.max(1, cols.length)}">${keycaps('?')} or tap the round ${keycaps('?')} button</td></tr>`;
+    html += `<tr><td>${t('these keys', '看按键')}</td><td class="kh-k" colspan="${Math.max(1, cols.length)}">${keycaps('?')} ${t('or tap the round', '或点圆形')} ${keycaps('?')} ${t('button', '按钮')}</td></tr>`;
     html += '</table>';
-    if (o.note) html += `<div class="kh-note">${esc(o.note)}</div>`;
-    if (o.touch) html += `<div class="kh-touch">👆 ${esc(o.touch)}</div>`;
-    html += '<div class="kh-foot">⏸ The game waits for you. Press any key or tap to play on.</div></div>';
+    if (o.note) html += `<div class="kh-note">${esc(t(o.note))}</div>`;
+    if (o.touch) html += `<div class="kh-touch">👆 ${esc(t(o.touch))}</div>`;
+    html += `<div class="kh-foot">⏸ ${t('The game waits for you. Press any key or tap to play on.', '游戏在等你。按任意键或点一下，继续玩。')}</div></div>`;
     root.innerHTML = html;
   }
+  if (Kit.lang) Kit.lang.onChange(() => { if (isOpen) render(); });
 
   function placeButton() {
     if (opts.button === false) { if (btn) btn.style.display = 'none'; return; }
@@ -4671,7 +4935,7 @@ BT.SUBTITLE = 'Teddy & Tommy blow bubbles!';
         break;
       case 'escape':
         this.burst(ev.x, ev.y + 0.6, '#ff6060', 10, 3.5, 0.24);
-        this.popup('GRR!', ev.x, ev.y + 2, '#ff6060');
+        this.popup(Kit.lang.t('GRR!'), ev.x, ev.y + 2, '#ff6060'); // canvas text: translated where it's drawn
         break;
       case 'letter':
         this.popup(ev.letter + '!', ev.x, ev.y + 0.8, '#ff7ab8');
@@ -4686,7 +4950,7 @@ BT.SUBTITLE = 'Teddy & Tommy blow bubbles!';
         this.burst(ev.x, ev.y + 0.6, '#ffffff', 10, 3, 0.25);
         break;
       case 'boop':
-        this.popup('TICKLE!', ev.x, ev.y + 2.2, '#e6dcff');
+        this.popup(Kit.lang.t('TICKLE!'), ev.x, ev.y + 2.2, '#e6dcff');
         break;
       case 'clear':
         this.confetti(70);
@@ -4714,7 +4978,7 @@ BT.SUBTITLE = 'Teddy & Tommy blow bubbles!';
         const v = sim.boss && this.actors.get(sim.boss);
         if (v) v.flash = 1;
         this.burst(ev.x, ev.y, '#ffffff', 6, 3, 0.2);
-        if (ev.dmg > 1) this.popup('ZAP!', ev.x, ev.y + 1, '#ffe46a');
+        if (ev.dmg > 1) this.popup(Kit.lang.t('ZAP!'), ev.x, ev.y + 1, '#ffe46a');
         break;
       }
       case 'bossBump':
@@ -5424,6 +5688,103 @@ Kit.help.setup({
   note: "1 player: either set of keys works, Space jumps and X blows too.",
   touch: "The pad on the left, ⬆️ and 🫧 on the right, and the big round button (bottom middle) for your brother.",
 });
+
+</script>
+<script>
+/* 中文 for Bubble TT: the words on the page, the toasts, the level and world names, the level tips, the ? panel, and
+   the three words that pop up in the 3D scene (GRR!, TICKLE!, ZAP!, wrapped in Kit.lang.t in js/view.js).
+   Stays in English on purpose: the kids' names (TEDDY, TOMMY, on the cards, name tags and toasts), the game's name
+   and logo (Alan picks the names), and the letters of T-E-D-D-Y and T-O-M-M-Y (a spelling bonus). */
+(function () {
+  const L = Kit.lang;
+  L.keep(['TEDDY', 'TOMMY', 'Teddy', 'Tommy', 'Teddy：', 'Tommy：', 'Bubble TT', BT.TITLE, 'Esc']);
+
+  // the 30 levels: names (cards' tooltips, the banner) and tips (the banner)
+  const LEVELS = [
+    ['Hello, Bubbles!', '泡泡你好！', 'Blow a bubble at a zombie, then pop it!', '对着僵尸吹个泡泡，再把泡泡戳破！'],
+    ['Up, Up, Up!', '往上跳，往上跳！', 'Jump up through the platforms. No bumped heads!', '往上跳就能穿过平台，不会撞到头！'],
+    ['Bubble Ladder', '泡泡梯子', 'Land on your own bubbles to bounce up high!', '踩在自己的泡泡上，能弹得高高的！'],
+    ['Bouncy Blobs', '弹弹果冻怪', 'Blobs bounce! Catch them in the air.', '果冻怪会弹跳！在空中抓住它们。'],
+    ['Holes in the Floor', '地板上的洞', 'Fall through a hole and you drop back in from the top!', '从洞里掉下去，会从上面掉回来！'],
+    ['Backyard Party', '后院派对', 'Pop lots of bubbles at once for a COMBO!', '一次戳破好多泡泡，就是连击！'],
+    ['Robot Friends?', '机器人朋友？', 'Robots are quick! Let them come to you.', '机器人跑得快！等它们自己过来。'],
+    ['Block Tower', '积木塔', 'Climb the tower and catch everybody!', '爬上积木塔，把大家都抓住！'],
+    ['Toy Stairs', '玩具楼梯', 'Hop up the stairs, one step at a time.', '一级一级跳上楼梯。'],
+    ['Flying Robots', '飞行机器人', 'Flying robots zig-zag. Blow bubbles where they fly!', '飞行机器人飞来飞去，朝它们飞的地方吹泡泡！'],
+    ['Toy Train', '玩具火车', 'Choo choo! Every car is a platform.', '呜呜！每节车厢都是平台。'],
+    ['Toy Box', '玩具箱', 'Some baddies are hiding in the toy box!', '有坏蛋躲在玩具箱里！'],
+    ['Lollipops', '棒棒糖', 'Sweet! Bigger combos make bigger treats.', '真甜！连击越大，零食越大。'],
+    ['Candy Canes', '拐杖糖', 'Catch the water bubble and wash them all away!', '抓住水泡泡，把它们都冲走！'],
+    ['Gumdrops', '软糖', 'Boing boing! So many blobs.', '嘣嘣嘣！好多果冻怪。'],
+    ['Cupcake', '纸杯蛋糕', 'Climb the cupcake to the cherry on top!', '爬上纸杯蛋糕，摘到顶上的樱桃！'],
+    ['Sugar Rush', '糖果狂欢', 'Everybody is zooming around. Stay calm and bubble!', '大家都在乱跑，别慌，吹泡泡！'],
+    ['Candy Castle', '糖果城堡', 'Hop along the castle top!', '在城堡顶上跳来跳去！'],
+    ['Moon Walk', '月球漫步', 'Holes in the floor! Drop down to pop up at the top.', '地板上有洞！掉下去就会从上面冒出来。'],
+    ['Rocket', '火箭', 'Lightning bubbles zap everything in a row!', '闪电泡泡能把一整排都劈中！'],
+    ['UFO', '飞碟', "Tommy's favourite: a flying saucer!", 'Tommy 最喜欢的：飞碟！'],
+    ['Star Field', '满天星', 'Little platforms, big jumps!', '小小平台，大大跳跃！'],
+    ['Planets', '行星', 'Round and round they go!', '转呀转呀转！'],
+    ['Space Station', '太空站', 'Almost at the castle. You can do it!', '快到城堡啦，你能行！'],
+    ['Castle Gate', '城堡大门', 'Welcome to the moon castle!', '欢迎来到月亮城堡！'],
+    ['Towers', '高塔', 'Up the towers and down again!', '爬上高塔，再下来！'],
+    ['Zigzag', '之字路', 'Zig, zag, zig, zag... bubble!', '左拐，右拐，左拐，右拐……吹泡泡！'],
+    ['The Big Heart', '大大的爱心', 'Teddy and Tommy, best brothers ever!', 'Teddy 和 Tommy，最棒的兄弟！'],
+    ['T and T', 'T 和 T', 'Two big Ts, for Teddy and Tommy!', '两个大大的 T，代表 Teddy 和 Tommy！'],
+    ['Big Zom', '大僵尸', 'Big Zom has a bubble shield! Hit it with lots of bubbles and lightning.', '大僵尸有泡泡护盾！用好多泡泡和闪电打它。'],
+  ];
+  for (const [name, nameZh, tip, tipZh] of LEVELS) L.add({ [name]: nameZh, [tip]: tipZh });
+
+  // the five worlds (level screen headings, the banner)
+  const WORLDS = { BACKYARD: '后院', 'TOY ROOM': '玩具房', 'CANDY LAND': '糖果乐园', SPACE: '太空', 'MOON CASTLE': '月亮城堡', 'THE BIG ONE': '最终关' };
+  L.add(WORLDS);
+
+  L.add({
+    // title screen
+    'Teddy & Tommy blow bubbles!': 'Teddy 和 Tommy 吹泡泡！',
+    'Teddy + Tommy together': 'Teddy + Tommy 一起玩',
+    '🐣 EASY': '🐣 简单', '🔥 NORMAL': '🔥 普通', 'START AT LEVEL': '起始关卡',
+    // level screen
+    'PICK A LEVEL': '选一关', 'open every level': '打开所有关卡',
+    // HUD
+    LEVEL: '关卡', 'BIG ZOM': '大僵尸', 'Pause (P)': '暂停 (P)', 'Sound (M)': '声音 (M)',
+    'press T': '按 T', 'tap for another treat': '再点一下，再来个零食', 'HIGH FIVE! ✋': '击掌！✋', 'HIGH FIVE': '击掌',
+    // pause, game over, the end
+    '↻ START LEVEL AGAIN': '↻ 重玩这一关', '🏠 MENU': '🏠 菜单',
+    'OH NO!': '哎呀！', 'KEEP GOING!': '继续加油！', "Out of hearts. Everybody's just a bit dizzy.": '没有爱心啦。大家只是有点晕。',
+    'YOU BEAT BIG ZOM!': '你打败了大僵尸！',
+    // toasts
+    '💧 SPLASH!': '💧 哗啦！', '⚡ ZAP!': '⚡ 劈啪！', 'HURRY UP! ⏰': '快一点！⏰',
+    '👻 HERE COMES THE TICKLE GHOST!': '👻 挠痒痒小幽灵来啦！', 'CLEAR! 🎉': '过关啦！🎉', '✋ HIGH FIVE!': '✋ 击掌！',
+    'BIG ZOM IS IN A BUBBLE! POP HIM!': '大僵尸被泡泡困住啦！快戳破它！', 'YOU DID IT! 🎂': '你成功啦！🎂',
+    // the words that pop up in the 3D scene
+    'GRR!': '哼！', 'TICKLE!': '咯吱咯吱！', 'ZAP!': '劈啪！',
+    // the ? panel (js/keys.js)
+    'blow a bubble (hold for more)': '吹泡泡（按住一直吹）',
+    '1 player: either set of keys works, Space jumps and X blows too.': '单人：两套按键都能用，空格也能跳，X 也能吹泡泡。',
+    'The pad on the left, ⬆️ and 🫧 on the right, and the big round button (bottom middle) for your brother.':
+      '左边的方向键走路，右边的 ⬆️ 跳、🫧 吹泡泡，下面中间的大圆按钮叫兄弟来帮忙。',
+  });
+
+  const TREAT = { 'ICE CREAM': '冰淇淋', WATER: '水', 'JUICE BOX': '果汁', COOKIE: '饼干', WATERMELON: '西瓜', BANANA: '香蕉' };
+  const who = (s) => s.replace(/^Teddy and Tommy$/, 'Teddy 和 Tommy');
+  L.rule(/^LEVEL (\d+)$/, '第 $1 关');
+  L.rule(/^LEVEL (\d+) · (.+)$/, (m, n, w) => `第 ${n} 关 · ${WORLDS[w] || w}`);
+  L.rule(/^CALL (TEDDY|TOMMY)$/, '叫 $1 来帮忙');
+  L.rule(/^(TEDDY|TOMMY) IS HERE!$/, '$1 来啦！');
+  L.rule(/^ready in (\d+)$/, '还要 $1 秒');
+  L.rule(/^HIGH FIVE IN (\d+)…$/, '还要 $1 秒才能击掌…');
+  L.rule(/^BEST SCORE ([\d,]+)$/, '最高分 $1');
+  L.rule(/^COMBO x(\d+)! (.*)$/, '连击 x$1！$2');
+  L.rule(/^OOPS! (TEDDY|TOMMY) IS DIZZY (.*)$/, '哎呀！$1 晕啦 $2');
+  L.rule(/^(TEDDY|TOMMY) SAVED YOU! (.*)$/, '$1 救了你！$2');
+  L.rule(/^(TEDDY|TOMMY) BONUS! (.*)$/, '$1 奖励！$2');
+  L.rule(/^(TEDDY|TOMMY) IS COMING TO HELP!$/, '$1 来帮忙啦！');
+  L.rule(/^BYE BYE, (TEDDY|TOMMY)! (.*)$/, '拜拜，$1！$2');
+  L.rule(/^(TEDDY|TOMMY) IS OUT OF HEARTS\. KEEP GOING, (TEDDY|TOMMY)!$/, '$1 没有爱心啦。$2，加油！');
+  L.rule(/^(\S+) (ICE CREAM|WATER|JUICE BOX|COOKIE|WATERMELON|BANANA) FROM (TEDDY|TOMMY)!$/, (m, emoji, item, from) => `${emoji} ${from} 送来的${TREAT[item]}！`);
+  L.rule(/^Out of hearts on level (\d+)\. Everybody's just a bit dizzy!$/, '第 $1 关没有爱心啦。大家只是有点晕！');
+  L.rule(/^(.+) scored ([\d,]+) points and saved the moon castle!$/, (m, w, n) => `${who(w)} 得了 ${n} 分，救下了月亮城堡！`);
+})();
 
 </script>
 </body>
