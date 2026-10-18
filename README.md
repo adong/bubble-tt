@@ -1,6 +1,10 @@
-# Bubble TT (working title)
+# Bubble TT
 
 [![Bubble TT title screen](docs/screenshot.jpg)](https://adong.github.io/bubble-tt/)
+
+Trap zombies in bubbles and pop them together. 30 levels, 1 or 2 players.
+
+**中文：** 吹泡泡困住僵尸，再一起戳破！30 关，单人或双人。
 
 Press **?** any time (or tap the round **?** button on the left edge) to see the keys. The game waits while you look.
 Tap the language button under it (the A文 icon) to switch between English and 中文; the dashboard and every game remember the choice.
