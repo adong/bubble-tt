@@ -2,6 +2,8 @@
 
 [![Bubble TT title screen](docs/screenshot.jpg)](https://adong.github.io/bubble-tt/)
 
+Press **?** any time (or tap the round **?** button on the left edge) to see the keys. The game waits while you look.
+
 A single-screen bubble-blowing platformer starring Teddy and Tommy, built with Claude Code from plain JavaScript and
 Three.js. Blow a bubble at a silly zombie, robot or bouncy blob, and he's stuck inside, wiggling. Pop the bubble and he
 turns into fruit and treats. Pop a whole bunch at once for a combo and bigger treats. Teddy blows blue bubbles and Tommy
