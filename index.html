@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2b2f78">
+<title>Bubble TT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teddy: #3d9bff;
+    --teddy-l: #9fd0ff;
+    --tommy: #2fd6a2;
+    --tommy-l: #9ff2d6;
+    --yellow: #ffd23f;
+    --pink: #ff6fb5;
+    --ink: #14121f;
+    --display: 'Bungee', 'Arial Black', Impact, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden; background: #2b2f78; color: #fff;
+    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
+    touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  }
+  #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .hidden { display: none !important; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  img { -webkit-user-drag: none; }
+
+  /* ---------- HUD ---------- */
+  #hud { position: fixed; inset: 0; pointer-events: none; }
+  .top { position: absolute; left: 0; right: 0; top: 0; padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 8px; }
+  .pcard { display: flex; align-items: center; gap: 8px; padding: 4px 14px 4px 4px; border-radius: 999px; background: rgba(20, 18, 40, 0.55);
+    border: 3px solid var(--teddy-l); justify-self: start; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+  .pcard.m { border-color: var(--tommy-l); justify-self: end; flex-direction: row-reverse; padding: 4px 4px 4px 14px; }
+  .pcard .face { width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle at 50% 35%, #e8f4ff, var(--teddy)); object-fit: cover; }
+  .pcard.m .face { background: radial-gradient(circle at 50% 35%, #e9fff6, var(--tommy)); }
+  .pcard .score { display: block; font-family: var(--display); font-size: 20px; line-height: 1.05; text-shadow: 0 2px 0 rgba(0,0,0,0.45); }
+  .pcard.m .score { text-align: right; }
+  .letters { display: flex; gap: 3px; margin-top: 2px; }
+  .pcard.m .letters { justify-content: flex-end; }
+  .letters i { font-style: normal; font-family: var(--display); font-size: 12px; width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center;
+    background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.4); }
+  .letters i.on { background: var(--pink); color: #fff; box-shadow: 0 0 8px rgba(255,111,181,0.9); }
+  .mid { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .mid .row { display: flex; gap: 8px; align-items: center; pointer-events: auto; }
+  .pill { font-family: var(--display); font-size: 16px; padding: 7px 16px; border-radius: 999px; background: rgba(20,18,40,0.6); border: 3px solid rgba(255,255,255,0.85);
+    text-shadow: 0 2px 0 rgba(0,0,0,0.4); white-space: nowrap; }
+  .pill b { color: var(--yellow); }
+  .ibtn { width: 44px; height: 44px; border-radius: 14px; font-size: 18px; background: rgba(20,18,40,0.55); border: 2px solid rgba(255,255,255,0.8); display: grid; place-items: center; }
+  .ibtn:active { transform: scale(0.94); }
+  .hearts { font-size: 18px; letter-spacing: 1px; text-shadow: 0 2px 0 rgba(0,0,0,0.3); min-height: 22px; }
+  #bossBar { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-size: 14px; text-shadow: 0 2px 0 rgba(0,0,0,0.5); }
+  #bossBar i { width: 170px; height: 14px; border-radius: 8px; border: 2px solid #fff; background: rgba(20,18,40,0.6); overflow: hidden; }
+  #bossBar b { display: block; height: 100%; background: linear-gradient(90deg, #ff7fb8, #7fe8ff); transform-origin: left; }
+  #buddyBar { position: absolute; left: max(12px, env(safe-area-inset-left)); top: 78px; display: flex; align-items: center; gap: 8px; }
+  #buddyBar img { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #fff; background: var(--tommy); object-fit: cover; }
+  #buddyBar.t img { background: var(--teddy); }
+  #buddyBar i { width: 120px; height: 12px; border-radius: 7px; border: 2px solid #fff; background: rgba(20,18,40,0.6); overflow: hidden; }
+  #buddyBar b { display: block; height: 100%; background: linear-gradient(90deg, var(--tommy), var(--tommy-l)); transform-origin: left; }
+  #buddyBar.t b { background: linear-gradient(90deg, var(--teddy), var(--teddy-l)); }
+  #buddyBar em { font-style: normal; font-family: var(--display); font-size: 12px; text-shadow: 0 2px 0 rgba(0,0,0,0.5); }
+
+  /* the companion button: bottom middle */
+  #callBtn { position: absolute; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); transform: translateX(-50%); pointer-events: auto;
+    display: flex; align-items: center; gap: 8px; padding: 5px 18px 5px 5px; border-radius: 999px; background: rgba(20,18,40,0.6);
+    border: 3px solid var(--tommy-l); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+  #callBtn.t { border-color: var(--teddy-l); }
+  #callBtn .face { position: relative; width: 62px; height: 62px; border-radius: 50%; overflow: hidden; background: radial-gradient(circle at 50% 35%, #e9fff6, var(--tommy)); flex: none; }
+  #callBtn.t .face { background: radial-gradient(circle at 50% 35%, #e8f4ff, var(--teddy)); }
+  #callBtn .face img { width: 100%; height: 100%; object-fit: cover; }
+  #callBtn .face .five { position: absolute; inset: 0; display: grid; place-items: center; font-size: 34px; }
+  #callBtn .cool { position: absolute; inset: 0; border-radius: 50%; }
+  #callBtn em { font-style: normal; font-family: var(--display); font-size: 15px; line-height: 1.1; text-align: left; text-shadow: 0 2px 0 rgba(0,0,0,0.5); }
+  #callBtn em small { display: block; font-family: 'Rubik', sans-serif; font-weight: 700; font-size: 11px; opacity: 0.85; }
+  #callBtn:active { transform: translateX(-50%) scale(0.95); }
+  #callBtn.here { box-shadow: 0 0 18px var(--tommy); }
+  #callBtn.t.here { box-shadow: 0 0 18px var(--teddy); }
+
+  /* ---------- touch ---------- */
+  #touch { position: fixed; inset: 0; pointer-events: none; }
+  #touch .pad, #touch .btns { position: absolute; bottom: max(12px, env(safe-area-inset-bottom)); pointer-events: auto; }
+  #touch .pad { width: 176px; height: 88px; border-radius: 44px; display: flex; background: rgba(255,255,255,0.16); border: 3px solid rgba(255,255,255,0.55); }
+  #touch .pad span { flex: 1; display: grid; place-items: center; font-size: 30px; opacity: 0.85; border-radius: 40px; }
+  #touch .pad span.on { background: rgba(255,255,255,0.3); }
+  #touch .btns { display: flex; gap: 12px; }
+  #touch .btns button { width: 84px; height: 84px; border-radius: 50%; font-size: 34px; background: rgba(255,255,255,0.16); border: 3px solid rgba(255,255,255,0.55); }
+  #touch .btns button.on { background: rgba(255,255,255,0.38); transform: scale(0.95); }
+  #touch.one .pad[data-side="L"] { left: max(14px, env(safe-area-inset-left)); }
+  #touch.one .btns[data-side="R"] { right: max(14px, env(safe-area-inset-right)); }
+  #touch.one .btns[data-side="L"], #touch.one .pad[data-side="R"] { display: none; }
+  #touch.two .pad { width: 140px; height: 76px; }
+  #touch.two .btns { flex-direction: column; gap: 8px; }
+  #touch.two .btns button { width: 66px; height: 66px; font-size: 26px; }
+  #touch.two .pad[data-side="L"] { left: max(10px, env(safe-area-inset-left)); }
+  #touch.two .btns[data-side="L"] { left: calc(max(10px, env(safe-area-inset-left)) + 152px); }
+  #touch.two .btns[data-side="R"] { right: calc(max(10px, env(safe-area-inset-right)) + 152px); }
+  #touch.two .pad[data-side="R"] { right: max(10px, env(safe-area-inset-right)); }
+  #touch.two .pad[data-side="L"], #touch.two .btns[data-side="L"] button { border-color: var(--teddy-l); }
+  #touch.two .pad[data-side="R"], #touch.two .btns[data-side="R"] button { border-color: var(--tommy-l); }
+
+  /* ---------- toasts and the level banner ---------- */
+  #toasts { position: fixed; left: 0; right: 0; top: 22%; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+  .toast { font-family: var(--display); font-size: clamp(20px, 3.6vw, 34px); text-align: center; padding: 6px 22px; border-radius: 18px;
+    background: rgba(20,18,40,0.62); border: 3px solid #fff; text-shadow: 0 3px 0 rgba(0,0,0,0.45); max-width: 92vw; }
+  .toast.big { font-size: clamp(28px, 5.4vw, 52px); color: var(--yellow); }
+  .toast.t { border-color: var(--teddy-l); }
+  .toast.m { border-color: var(--tommy-l); }
+  #banner { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; padding: 18px 34px 20px;
+    border-radius: 26px; background: rgba(20,18,40,0.68); border: 4px solid #fff; max-width: 92vw; }
+  #banner small { font-family: var(--display); font-size: 18px; color: var(--yellow); letter-spacing: 1px; }
+  #banner h2 { font-family: var(--display); font-size: clamp(28px, 5vw, 50px); font-weight: 400; line-height: 1.1; margin: 4px 0 6px; }
+  #banner p { font-weight: 700; font-size: clamp(15px, 2.2vw, 20px); opacity: 0.95; }
+  #fade { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 50%, #bfe6ff, #3d9bff 60%, #2b2f78); opacity: 0; }
+
+  /* ---------- screens ---------- */
+  .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 18px;
+    background: radial-gradient(ellipse at center, rgba(20,18,40,0.25), rgba(20,18,40,0.72)); overflow-y: auto; }
+  .screen > * { flex-shrink: 0; }
+  .logo { font-family: var(--display); font-weight: 400; font-size: clamp(54px, 11vw, 120px); line-height: 0.95; letter-spacing: 1px; text-align: center;
+    color: #fff; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink), 0 0 30px rgba(127,232,255,0.8); }
+  .logo .a { color: var(--teddy-l); }
+  .logo .b { color: var(--tommy-l); }
+  .sub { font-weight: 800; font-size: clamp(16px, 2.6vw, 22px); text-shadow: 0 2px 0 rgba(0,0,0,0.5); margin-top: -6px; }
+  .picks { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .kid { width: 170px; padding: 10px 10px 12px; border-radius: 24px; background: rgba(20,18,40,0.6); border: 4px solid var(--teddy-l); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .kid.m { border-color: var(--tommy-l); }
+  .kid img { width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle at 50% 35%, #e8f4ff, var(--teddy)); }
+  .kid.m img { background: radial-gradient(circle at 50% 35%, #e9fff6, var(--tommy)); }
+  .kid b { font-family: var(--display); font-weight: 400; font-size: 26px; margin-top: 4px; }
+  .kid small { font-weight: 800; font-size: 13px; opacity: 0.85; }
+  .kid:hover, .kid:focus-visible, .big:hover, .big:focus-visible { transform: translateY(-2px); box-shadow: 0 0 22px rgba(255,255,255,0.4); outline: none; }
+  .kid:active, .big:active { transform: scale(0.97); }
+  .big { font-family: var(--display); font-size: 24px; padding: 12px 28px; border-radius: 22px; background: linear-gradient(180deg, #ffe066, #ffb52e); color: var(--ink);
+    border: 4px solid var(--ink); box-shadow: 0 5px 0 var(--ink); display: inline-flex; align-items: center; gap: 10px; }
+  .big.two { background: linear-gradient(90deg, var(--teddy-l), var(--tommy-l)); }
+  .big.two img { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.6); }
+  .big small { display: block; font-family: 'Rubik', sans-serif; font-weight: 800; font-size: 12px; }
+  .big.ghost { background: rgba(255,255,255,0.85); }
+  .opts { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; align-items: center; }
+  .seg { display: flex; border-radius: 999px; overflow: hidden; border: 3px solid #fff; background: rgba(20,18,40,0.6); }
+  .seg button { font-family: var(--display); font-size: 15px; padding: 9px 16px; opacity: 0.6; }
+  .seg button.on { background: #fff; color: var(--ink); opacity: 1; }
+  .chip { font-family: var(--display); font-size: 15px; padding: 9px 16px; border-radius: 999px; border: 3px solid #fff; background: rgba(20,18,40,0.6); }
+  .chip b { color: var(--yellow); }
+  .keys { font-weight: 700; font-size: 13px; opacity: 0.9; text-align: center; max-width: 760px; line-height: 1.55; text-shadow: 0 2px 0 rgba(0,0,0,0.5); }
+  .keys kbd { font-family: inherit; background: rgba(255,255,255,0.18); border-radius: 6px; padding: 1px 6px; }
+  .best { font-family: var(--display); font-size: 14px; opacity: 0.9; }
+  .card { background: rgba(20,18,40,0.82); border: 4px solid #fff; border-radius: 28px; padding: 22px 30px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; max-width: 92vw; }
+  .card h2 { font-family: var(--display); font-weight: 400; font-size: clamp(30px, 6vw, 54px); line-height: 1; }
+  .card p { font-weight: 700; font-size: 17px; }
+  .card .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .grid { display: grid; grid-template-columns: repeat(6, 64px); gap: 10px; }
+  .grid button { width: 64px; height: 64px; border-radius: 18px; font-family: var(--display); font-size: 22px; border: 3px solid #fff; color: var(--ink); }
+  .grid button.lock { opacity: 0.4; }
+  .grid button.boss { font-size: 28px; }
+  .grid .w { grid-column: 1 / -1; font-family: var(--display); font-size: 14px; text-align: left; margin-top: 4px; }
+  .link { font-weight: 700; font-size: 13px; text-decoration: underline; opacity: 0.8; }
+
+  /* small phones */
+  @media (max-width: 640px) {
+    .pcard .face { width: 36px; height: 36px; }
+    .pcard .score { font-size: 15px; }
+    .letters i { width: 15px; height: 15px; font-size: 9px; }
+    .pill { font-size: 12px; padding: 5px 10px; }
+    .ibtn { width: 36px; height: 36px; font-size: 15px; }
+    .kid { width: 136px; }
+    .kid img { width: 92px; height: 92px; }
+    .grid { grid-template-columns: repeat(6, 46px); gap: 7px; }
+    .grid button { width: 46px; height: 46px; font-size: 16px; border-radius: 13px; }
+    #touch .pad { width: 140px; height: 76px; }
+    #touch .btns button { width: 70px; height: 70px; font-size: 28px; }
+    #callBtn em { display: none; }
+    #callBtn { padding: 4px; }
+  }
+  body.calm * { transition: none !important; animation: none !important; }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div id="hud" class="hidden">
+  <div class="top">
+    <div class="pcard t" id="card-teddy"><img class="face" alt=""><div><b class="score">0</b><span class="letters"></span></div></div>
+    <div class="mid">
+      <div class="row">
+        <button class="ibtn" id="btnPause" title="Pause (P)">❚❚</button>
+        <div class="pill">LEVEL <b id="lvlNum">1</b></div>
+        <button class="ibtn" id="btnMute" title="Sound (M)">🔊</button>
+      </div>
+      <div class="hearts" id="hearts"></div>
+      <div id="bossBar" class="hidden"><span>BIG ZOM</span><i><b></b></i></div>
+    </div>
+    <div class="pcard m" id="card-tommy"><img class="face" alt=""><div><b class="score">0</b><span class="letters"></span></div></div>
+  </div>
+  <div id="buddyBar" class="hidden"><img alt=""><i><b></b></i><em></em></div>
+  <button id="callBtn"><span class="face"><img alt=""><span class="five hidden">✋</span><span class="cool"></span></span><em></em></button>
+</div>
+
+<div id="touch" class="hidden">
+  <div class="pad" data-side="L"><span>◀</span><span>▶</span></div>
+  <div class="btns" data-side="L"><button data-k="jump">⬆️</button><button data-k="fire">🫧</button></div>
+  <div class="btns" data-side="R"><button data-k="jump">⬆️</button><button data-k="fire">🫧</button></div>
+  <div class="pad" data-side="R"><span>◀</span><span>▶</span></div>
+</div>
+
+<div id="toasts"></div>
+<div id="banner" class="hidden"><small id="bnNum">LEVEL 1</small><h2 id="bnName"></h2><p id="bnTip"></p></div>
+
+<div id="title" class="screen">
+  <h1 class="logo" id="logo"></h1>
+  <p class="sub" id="subtitle"></p>
+  <div class="picks">
+    <button class="kid t" data-hero="teddy"><img alt=""><b>TEDDY</b><small>1 PLAYER</small></button>
+    <button class="kid m" data-hero="tommy"><img alt=""><b>TOMMY</b><small>1 PLAYER</small></button>
+  </div>
+  <button class="big two" id="btn2p"><img alt="" id="img2pT"><span>2 PLAYERS<small>Teddy + Tommy together</small></span><img alt="" id="img2pM"></button>
+  <div class="opts">
+    <div class="seg" id="segEasy"><button data-easy="1">🐣 EASY</button><button data-easy="0">🔥 NORMAL</button></div>
+    <button class="chip" id="btnLevel">START AT LEVEL <b id="startNum">1</b></button>
+    <button class="chip" id="btnMute2">🔊</button>
+  </div>
+  <p class="best" id="bestLine"></p>
+  <p class="keys">
+    <b>Teddy:</b> <kbd>A</kbd> <kbd>D</kbd> walk · <kbd>W</kbd> jump · <kbd>F</kbd> bubble &nbsp;|&nbsp;
+    <b>Tommy:</b> <kbd>←</kbd> <kbd>→</kbd> walk · <kbd>↑</kbd> jump · <kbd>L</kbd> bubble<br>
+    1 player: either set, or <kbd>Space</kbd> to jump · <kbd>T</kbd> calls your brother (high five in 2 players) · <kbd>P</kbd> pause · <kbd>M</kbd> sound
+  </p>
+</div>
+
+<div id="levels" class="screen hidden">
+  <div class="card">
+    <h2>PICK A LEVEL</h2>
+    <div class="grid" id="levelGrid"></div>
+    <div class="row"><button class="big" id="btnLevelsBack">BACK</button></div>
+    <button class="link" id="btnAll">open every level</button>
+  </div>
+</div>
+
+<div id="pause" class="screen hidden">
+  <div class="card">
+    <h2>PAUSED</h2>
+    <div class="row"><button class="big" id="btnResume">▶ PLAY</button></div>
+    <div class="row"><button class="big ghost" id="btnRestart">↻ START LEVEL AGAIN</button><button class="big ghost" id="btnMenu">🏠 MENU</button></div>
+  </div>
+</div>
+
+<div id="over" class="screen hidden">
+  <div class="card">
+    <h2>OH NO!</h2>
+    <p id="overText">Out of hearts. Everybody's just a bit dizzy.</p>
+    <div class="row"><button class="big" id="btnKeep">KEEP GOING!</button><button class="big ghost" id="btnOverMenu">🏠 MENU</button></div>
+  </div>
+</div>
+
+<div id="win" class="screen hidden">
+  <div class="card">
+    <h2>YOU BEAT BIG ZOM!</h2>
+    <p id="winText"></p>
+    <div class="row"><button class="big" id="btnAgain">PLAY AGAIN</button><button class="big ghost" id="btnWinMenu">🏠 MENU</button></div>
+  </div>
+</div>
+
+<div id="fade"></div>
+
+<script src="kit/three.min.js"></script>
+<script src="kit/gfx.js"></script>
+<script src="kit/people.js"></script>
+<script src="kit/roster.js"></script>
+<script src="kit/portraits.js"></script>
+<script src="kit/sound.js"></script>
+<script src="js/title.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/art.js"></script>
+<script src="js/poses.js"></script>
+<script src="js/sfx.js"></script>
+<script src="js/view.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
