@@ -132,7 +132,7 @@ Press **?** (Shift + /) in any game, or tap the round **?** button in the middle
 
 Every game plays in English or 中文.
 
-- **Switching:** a small **中文 / EN** button sits under the round ? button, and the ? panel has a 🌐 button too. Switching is live, with no reload.
+- **Switching:** a round language button (Lucide's "languages" icon, an A next to 文) sits under the round ? button, and the ? panel has the same icon. A tap switches English / 中文, live, with no reload. The icon is ISC licensed (credit in `lang.js`).
 - **Remembered:**
   - the choice is saved under `localStorage['claudeGames.lang']`;
   - the dashboard uses the same key, so on the same site one choice carries into every game;
@@ -162,7 +162,7 @@ Kit.lang.onChange((lang) => redrawSigns());              // only for canvas text
   - `get()`, `is('zh')`, `set('en' | 'zh')` and `toggle()`;
   - `t(en)`, or `t(en, zh)` for an inline pair;
   - `add(dict)`, `rule(re, rep)`, `keep(list)`, `onChange(cb)` and `untranslated()`;
-  - `setup({ button: { top, left } | false })` moves or hides the 中文 / EN button.
+  - `setup({ button: { top, left } | false })` moves or hides the language button. `Kit.lang.icon` is its SVG, for reuse.
 
 ## Testing tips
 

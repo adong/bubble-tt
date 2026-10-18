@@ -3,7 +3,7 @@
 [![Bubble TT title screen](docs/screenshot.jpg)](https://adong.github.io/bubble-tt/)
 
 Press **?** any time (or tap the round **?** button on the left edge) to see the keys. The game waits while you look.
-Tap **中文 / EN** under it to switch between English and 中文 (the dashboard and every game remember the choice).
+Tap the language button under it (the A文 icon) to switch between English and 中文; the dashboard and every game remember the choice.
 
 A single-screen bubble-blowing platformer starring Teddy and Tommy, built with Claude Code from plain JavaScript and
 Three.js. Blow a bubble at a silly zombie, robot or bouncy blob, and he's stuck inside, wiggling. Pop the bubble and he
