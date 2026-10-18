@@ -28,6 +28,7 @@
 
   // ---------------------------------------------------------------- input
   const keys = new Set();
+  const tapped = new Set(); // keys pressed since the last step: a quick tap still counts even if it's released before the next frame
   const touch = { L: { ax: 0, jump: false, fire: false }, R: { ax: 0, jump: false, fire: false } };
 
   addEventListener('keydown', (e) => {
@@ -35,6 +36,7 @@
     if (/^Arrow|^Space$/.test(e.code)) e.preventDefault();
     const fresh = !keys.has(e.code);
     keys.add(e.code);
+    tapped.add(e.code);
     if (fresh && !e.repeat) onKey(e.code);
   });
   addEventListener('keyup', (e) => keys.delete(e.code));
@@ -65,7 +67,7 @@
   }
 
   function inputs() {
-    const k = (c) => (keys.has(c) ? 1 : 0);
+    const k = (c) => (keys.has(c) || tapped.has(c) ? 1 : 0);
     const L = touch.L, R = touch.R;
     let out;
     if (G.mode === '2p') {
@@ -107,8 +109,8 @@
     }
     for (const b of document.querySelectorAll('#touch .btns button')) {
       const side = b.parentNode.dataset.side, k = b.dataset.k, held = new Set();
-      const upd = () => { touch[side][k] = held.size > 0; b.classList.toggle('on', held.size > 0); };
-      b.addEventListener('pointerdown', (e) => { S.init(); b.setPointerCapture(e.pointerId); held.add(e.pointerId); upd(); e.preventDefault(); });
+      const upd = () => { touch[side][k] = held.size > 0 || tapped.has(side + k); b.classList.toggle('on', held.size > 0); };
+      b.addEventListener('pointerdown', (e) => { S.init(); b.setPointerCapture(e.pointerId); held.add(e.pointerId); tapped.add(side + k); upd(); e.preventDefault(); });
       const end = (e) => { held.delete(e.pointerId); upd(); };
       b.addEventListener('pointerup', end);
       b.addEventListener('pointercancel', end);
@@ -220,6 +222,10 @@
   function stepSim() {
     const sim = G.sim;
     sim.step(DT, inputs());
+    if (tapped.size) {
+      tapped.clear();
+      for (const side of ['L', 'R']) for (const k of ['jump', 'fire']) touch[side][k] = !!document.querySelector(`#touch .btns[data-side="${side}"] [data-k="${k}"].on`);
+    }
     for (const ev of sim.events) handle(ev, sim);
     sim.events.length = 0;
     G.streakT -= DT;
@@ -269,7 +275,7 @@
       case 'escape': fx.escape(); break;
       case 'clear': fx.clear(); toast('CLEAR! 🎉', { big: true, life: 2.4 }); break;
       case 'extraLife': fx.extraLife(); toast('+1 ❤️', { big: true, life: 1.5 }); break;
-      case 'highfive': fx.highfive(); toast('✋ HIGH FIVE! BUBBLES EVERYWHERE!', { big: true, life: 2 }); break;
+      case 'highfive': fx.highfive(); toast('✋ HIGH FIVE!', { big: true, life: 1.8 }); break;
       case 'buddyIn': fx.buddyIn(); toast(`${NAME[ev.who]} IS COMING TO HELP!`, { cls: cls(ev.who), life: 1.8 }); break;
       case 'gift': fx.gift(); toast(`${ev.emoji} ${ev.name} FROM ${NAME[ev.from]}!`, { cls: cls(ev.from), life: 2.2 }); break;
       case 'buddyBye': toast(`BYE BYE, ${NAME[ev.who]}! 👋`, { cls: cls(ev.who), life: 1.4 }); break;
@@ -278,7 +284,7 @@
       case 'bossBump': fx.bossBump(); break;
       case 'bossTrap': fx.bossTrap(); toast('BIG ZOM IS IN A BUBBLE! POP HIM!', { big: true, life: 2.6 }); break;
       case 'bossPop': fx.bossPop(); toast('YOU DID IT! 🎂', { big: true, life: 3 }); break;
-      case 'out': toast(`${NAME[ev.who]} IS OUT OF HEARTS. KEEP GOING, ${NAME[other(ev.who)]}!`, { life: 2.4 }); break;
+      case 'out': if (G.mode === '2p') toast(`${NAME[ev.who]} IS OUT OF HEARTS. KEEP GOING, ${NAME[other(ev.who)]}!`, { life: 2.4 }); break;
     }
   }
 
@@ -342,6 +348,7 @@
     }
     view.margins.side = 6;
     $('touch').classList.toggle('hidden', G.screen !== 'play' || !G.touchOn);
+    document.body.classList.toggle('touch', G.touchOn);
     const bb = $('buddyBar');
     if (G.sim && G.hero === 'tommy' && G.mode === '1p') { bb.style.left = 'auto'; bb.style.right = '12px'; }
     else { bb.style.left = ''; bb.style.right = ''; }
@@ -405,7 +412,7 @@
 
   function toast(text, o = {}) {
     const el = document.createElement('div');
-    el.className = 'toast' + (o.big ? ' big' : '') + (o.cls ? ' ' + o.cls : '');
+    el.className = 'toast' + (o.big ? ' huge' : '') + (o.cls ? ' ' + o.cls : '');
     el.textContent = text;
     $('toasts').appendChild(el);
     G.toasts.push({ el, t: 0, life: o.life || 1.6 });

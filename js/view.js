@@ -63,7 +63,7 @@
     const L = sim.L;
     // the painted wall behind
     const sky = BT.art.backdrop(theme);
-    const back = new T.Mesh(new T.PlaneGeometry(84, 56), new T.MeshLambertMaterial({ map: sky, emissive: '#ffffff', emissiveMap: sky, emissiveIntensity: 0.45 }));
+    const back = new T.Mesh(new T.PlaneGeometry(84, 56), new T.MeshLambertMaterial({ map: sky, emissive: '#ffffff', emissiveMap: sky, emissiveIntensity: dark ? 0.55 : 0.3 }));
     back.position.set(W / 2, H / 2, -1.2);
     back.receiveShadow = true;
     g.add(back);
@@ -242,8 +242,8 @@
     p.root.scale.setScalar(1.85);
     p.root.rotation.y = Math.PI;
     body.add(p.root);
-    const crown = sprite(G.emojiTexture('👑'), 1.5);
-    crown.position.y = 4.15;
+    const crown = sprite(G.emojiTexture('👑'), 1.7);
+    crown.position.set(0, 4.55, 0.6);
     body.add(crown);
     const shieldMat = new T.MeshStandardMaterial({ color: '#7fe8ff', transparent: true, opacity: 0.22, roughness: 0.1, metalness: 0.1,
       emissive: '#3fb8ff', emissiveIntensity: 0.35, depthWrite: false });
@@ -359,7 +359,7 @@
     if (e.state === 'trapped') {
       const b = e.bubble;
       scale *= 0.64;
-      v.root.position.set(b.x, b.y - (e.h * 0.64) / 2, 0.05);
+      v.root.position.set(b.x, b.y - (e.h * 0.64) / 2, 0.75);
       v.wig.rotation.z = Math.sin(this.t * 11 + e.id) * 0.28;
       v.yaw += wrapAngle(Math.PI - v.yaw) * Math.min(1, dt * 6);
       if (v.p) BT.pose(v.p, v.ph, 'kick', k);
@@ -404,19 +404,19 @@
       s.material.map = flash ? BT.art.bubbleTexture('#ff4040') : this.bubbleMap(b);
       size *= 1.08;
     }
-    s.position.set(b.x, b.y, 0.5);
+    s.position.set(b.x, b.y, 1.05);
     s.scale.set(size * (1 + w + v.sq * 0.25), size * (1 - w - v.sq * 0.3), 1);
     if (b.phase === 'shot') s.scale.multiplyScalar(0.75 + Math.min(1, b.age * 4) * 0.25);
   };
 
   View.prototype.syncTreat = function (v, t, dt) {
-    v.root.position.set(t.x, t.y + 0.42 + (t.onGround ? Math.sin(this.t * 4 + t.id) * 0.05 : 0), 0.55);
+    v.root.position.set(t.x, t.y + 0.42 + (t.onGround ? Math.sin(this.t * 4 + t.id) * 0.05 : 0), 0.95);
     const sx = t.onGround ? 0.95 : 0.95 * Math.cos(t.t * 9);
     v.root.scale.set(sx, 0.95, 1);
   };
 
   View.prototype.syncGhost = function (v, g) {
-    v.root.position.set(g.x, g.y + Math.sin(this.t * 3) * 0.2, 0.7);
+    v.root.position.set(g.x, g.y + Math.sin(this.t * 3) * 0.2, 1.1);
     v.root.material.opacity = g.cd > 0 ? 0.45 + Math.sin(this.t * 20) * 0.2 : 0.9;
     v.root.material.rotation = Math.sin(this.t * 2) * 0.15;
   };
@@ -454,7 +454,7 @@
   };
 
   View.prototype.syncBolt = function (v, z, dt) {
-    v.root.position.set(z.x, z.y, 0.8);
+    v.root.position.set(z.x, z.y, 1.1);
     v.z.material.rotation = Math.sin(this.t * 30) * 0.3;
     v.root.children[2].position.set(-z.dir * 0.5, Math.sin(this.t * 20) * 0.3, 0.1);
     if (Math.random() < 0.7) this.particle({ x: z.x - z.dir * 0.4, y: z.y + (Math.random() - 0.5) * 0.8, vx: -z.dir * 2, vy: (Math.random() - 0.5) * 2, life: 0.4, size: 0.45, color: '#fff27a', add: true });
@@ -474,7 +474,7 @@
         const c = w.trail[i];
         const head = i >= w.trail.length - 2;
         s.visible = true;
-        s.position.set(c.x, c.y + 0.35, 0.6);
+        s.position.set(c.x, c.y + 0.35, 0.95);
         const sz = (head ? 1.25 : 0.95) + Math.sin(this.t * 12 + i) * 0.08;
         s.scale.set(sz * 1.2, sz, 1);
         s.material.color.set(head ? '#bfe6ff' : '#3d9dff');
@@ -490,7 +490,7 @@
   View.prototype.particle = function (o) {
     const map = o.map || G.dotTexture();
     const s = sprite(map, o.size || 0.3, o.size || 0.3, { color: o.color || '#ffffff', blending: o.add ? T.AdditiveBlending : T.NormalBlending });
-    s.position.set(o.x, o.y, o.z ?? 0.9);
+    s.position.set(o.x, o.y, o.z ?? 1.2);
     this.scene.add(s);
     this.fx.push({ obj: s, vx: o.vx || 0, vy: o.vy || 0, life: o.life || 0.6, max: o.life || 0.6, size: o.size || 0.3,
       grow: o.grow || 0, grav: o.grav || 0, spin: o.spin || 0, fade: o.fade ?? true, rise: o.rise, path: o.path });
@@ -595,7 +595,7 @@
         this.burst(ev.x, ev.y + 0.4, '#fff27a', 6, 2.5, 0.18);
         break;
       case 'combo':
-        this.popup(`COMBO x${ev.n}!`, ev.x, ev.y + 0.5, '#ffd23f', true);
+        this.burst(ev.x, ev.y, '#ffd23f', 12 + ev.n * 4, 5, 0.3);
         break;
       case 'hurt':
         for (let i = 0; i < 6; i++) this.particle({ x: ev.x, y: ev.y + 1.2, vx: (Math.random() - 0.5) * 4, vy: 2 + Math.random() * 3, life: 0.8, size: 0.4, map: G.emojiTexture('⭐'), grav: 7 });

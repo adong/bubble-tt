@@ -1115,10 +1115,12 @@
       this.emit('buddyAgain', { who: id });
       return true;
     }
+    // land on the hero's own platform if there's room next to him, else the nearest floor below his height
+    const heroY = hero.onGround ? hero.y : Math.max(1, Math.floor(hero.y));
     let x = clamp(hero.x + (hero.x < W / 2 ? 2.5 : -2.5), 2, W - 2);
     for (let d = 0; d < W; d++) {
       const c = Math.floor(x) + (d % 2 ? -1 : 1) * Math.ceil(d / 2);
-      if (c > 0 && c < W - 1 && this.columnHasFloor(c)) { x = c + 0.5; break; }
+      if (c > 0 && c < W - 1 && this.columnHasFloor(c, heroY)) { x = c + 0.5; break; }
     }
     const p = this.makePlayer(id, { x, y: H - 1 - PHYS.h });
     p.buddy = true;
@@ -1128,6 +1130,7 @@
     p.left = 10;
     p.face = hero.x < x ? -1 : 1;
     p.spawn = { x, y: H - 1 - PHYS.h };
+    p.landBelow = heroY;
     this.players.push(p);
     this.buddy = p;
     this.buddyBot = new Bot(this, p);
@@ -1136,8 +1139,9 @@
     return true;
   };
 
-  Sim.prototype.columnHasFloor = function (c) {
-    for (let r = 0; r < H - 3; r++) if (surf(this.L, c, r)) return true;
+  // Is there somewhere to stand in column c at height `top` or below?
+  Sim.prototype.columnHasFloor = function (c, top = H) {
+    for (let r = 0; r < H - 3 && r + 1 <= top; r++) if (surf(this.L, c, r)) return true;
     return false;
   };
 
@@ -1145,11 +1149,11 @@
     const p = this.buddy;
     if (!p) return;
     if (p.state === 'enter') {
-      // floats down inside a big bubble
-      p.y -= 4 * dt;
-      const t = landAt(this.L, p.x, p.foot, p.y + 4 * dt, p.y);
+      // floats down inside a big bubble, past the platforms above the hero, and lands next to him
+      p.y -= 10 * dt;
+      const t = p.y <= p.landBelow + 0.01 ? landAt(this.L, p.x, p.foot, p.y + 10 * dt, p.y) : null;
       if (t !== null) { p.y = t; p.onGround = true; p.vy = 0; p.state = 'hello'; p.st = 0; this.emit('buddyLand', { who: p.id }); }
-      if (p.y < 1) { p.y = 1; p.state = 'hello'; p.st = 0; }
+      else if (p.y < 1) { p.y = 1; p.onGround = false; p.state = 'hello'; p.st = 0; }
       return;
     }
     if (p.state === 'leave') {

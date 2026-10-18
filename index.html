@@ -47,7 +47,9 @@
   .letters i { font-style: normal; font-family: var(--display); font-size: 12px; width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center;
     background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.4); }
   .letters i.on { background: var(--pink); color: #fff; box-shadow: 0 0 8px rgba(255,111,181,0.9); }
-  .mid { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .mid { display: flex; flex-direction: column; align-items: center; gap: 4px; grid-column: 2; grid-row: 1; }
+  .pcard.t { grid-column: 1; grid-row: 1; }
+  .pcard.m { grid-column: 3; grid-row: 1; }
   .mid .row { display: flex; gap: 8px; align-items: center; pointer-events: auto; }
   .pill { font-family: var(--display); font-size: 16px; padding: 7px 16px; border-radius: 999px; background: rgba(20,18,40,0.6); border: 3px solid rgba(255,255,255,0.85);
     text-shadow: 0 2px 0 rgba(0,0,0,0.4); white-space: nowrap; }
@@ -105,10 +107,10 @@
   #touch.two .pad[data-side="R"], #touch.two .btns[data-side="R"] button { border-color: var(--tommy-l); }
 
   /* ---------- toasts and the level banner ---------- */
-  #toasts { position: fixed; left: 0; right: 0; top: 22%; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
-  .toast { font-family: var(--display); font-size: clamp(20px, 3.6vw, 34px); text-align: center; padding: 6px 22px; border-radius: 18px;
+  #toasts { position: fixed; left: 0; right: 0; top: max(17vh, 112px); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+  .toast { font-family: var(--display); font-size: clamp(16px, 2.6vw, 26px); text-align: center; padding: 5px 18px; border-radius: 16px;
     background: rgba(20,18,40,0.62); border: 3px solid #fff; text-shadow: 0 3px 0 rgba(0,0,0,0.45); max-width: 92vw; }
-  .toast.big { font-size: clamp(28px, 5.4vw, 52px); color: var(--yellow); }
+  .toast.huge { font-size: clamp(22px, 4vw, 40px); color: var(--yellow); }
   .toast.t { border-color: var(--teddy-l); }
   .toast.m { border-color: var(--tommy-l); }
   #banner { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; padding: 18px 34px 20px;
@@ -177,6 +179,7 @@
     #touch .btns button { width: 70px; height: 70px; font-size: 28px; }
     #callBtn em { display: none; }
     #callBtn { padding: 4px; }
+    body.touch #callBtn { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 96px); }
   }
   body.calm * { transition: none !important; animation: none !important; }
 </style>

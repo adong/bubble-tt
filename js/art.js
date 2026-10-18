@@ -8,7 +8,7 @@
   // One theme per world (six levels each). `block` tints the platforms, `wall` the border, `cap` the top layer.
   BT.THEMES = [
     { id: 'backyard', name: 'BACKYARD', sky: ['#5fb8f5', '#c9ecff'], block: '#c8874a', wall: '#8b5a34', cap: '#62c94e', deco: '#ffffff', ink: '#5b3a1e', ui: '#62c94e' },
-    { id: 'toys', name: 'TOY ROOM', sky: ['#ffd98a', '#fff3d6'], block: '#ffffff', wall: '#7d57d6', cap: '#ffffff', deco: '#ff7aa8', ink: '#5a3d9a', ui: '#ff9f2e',
+    { id: 'toys', name: 'TOY ROOM', sky: ['#ff9e5e', '#ffd49a'], block: '#ffffff', wall: '#7d57d6', cap: '#ffe08a', deco: '#ff7aa8', ink: '#5a3d9a', ui: '#ff9f2e',
       blocks: ['#ef5361', '#3f8efc', '#ffc93c', '#47c46e', '#a066e8'] },
     { id: 'candy', name: 'CANDY LAND', sky: ['#ff9fd0', '#ffe7f4'], block: '#8a4f2c', wall: '#c24f8f', cap: '#ff8cc6', deco: '#ffffff', ink: '#7a2a55', ui: '#ff6fb5' },
     { id: 'space', name: 'SPACE', sky: ['#0b1033', '#2b2f78'], block: '#b2bfdc', wall: '#59648e', cap: '#6ef2ff', deco: '#ffd84a', ink: '#c9d6ff', ui: '#6ef2ff' },
@@ -146,14 +146,14 @@
         g.fillStyle = '#ffd84a';
         g.beginPath(); g.arc(880, 110, 56, 0, 7); g.fill();
       } else if (theme.id === 'toys') {
-        g.fillStyle = 'rgba(255,255,255,0.45)';
+        g.fillStyle = 'rgba(255,255,255,0.18)';
         for (let x = 0; x < 1024; x += 64) g.fillRect(x, 0, 28, 768);
-        g.fillStyle = 'rgba(255,140,90,0.35)';
-        for (let i = 0; i < 40; i++) { g.beginPath(); g.arc(R() * 1024, R() * 768, 6 + R() * 10, 0, 7); g.fill(); }
+        g.fillStyle = 'rgba(255,255,255,0.35)';
+        for (let i = 0; i < 40; i++) { g.beginPath(); g.arc(R() * 1024, R() * 768, 4 + R() * 6, 0, 7); g.fill(); }
         g.fillStyle = '#c98b52';
         g.fillRect(0, 700, 1024, 68);
         g.font = `90px ${G.EMOJI_FONT}`;
-        g.globalAlpha = 0.35;
+        g.globalAlpha = 0.55;
         ['🧸', '🚂', '🪀', '🎲', '🪁', '🚀'].forEach((e, i) => g.fillText(e, 40 + i * 170, 200 + (i % 2) * 300));
         g.globalAlpha = 1;
       } else if (theme.id === 'candy') {
@@ -227,16 +227,20 @@
     return once('bub' + tint + (inner || ''), () => {
       const [c, g] = G.makeCanvas(160, 160);
       const h = 80;
-      const gr = g.createRadialGradient(h, h, 20, h, h, 76);
-      gr.addColorStop(0, hexA(tint, 0.06));
-      gr.addColorStop(0.72, hexA(tint, 0.22));
-      gr.addColorStop(0.9, hexA(tint, 0.75));
+      const gr = g.createRadialGradient(h, h, 16, h, h, 77);
+      gr.addColorStop(0, hexA(tint, 0.16));
+      gr.addColorStop(0.65, hexA(tint, 0.34));
+      gr.addColorStop(0.88, hexA(tint, 0.95));
+      gr.addColorStop(0.97, hexA(tint, 0.9));
       gr.addColorStop(1, hexA(tint, 0));
       g.fillStyle = gr;
       g.beginPath(); g.arc(h, h, 78, 0, 7); g.fill();
-      g.strokeStyle = 'rgba(255,255,255,0.75)';
+      g.strokeStyle = 'rgba(20,30,70,0.45)';
       g.lineWidth = 3;
-      g.beginPath(); g.arc(h, h, 70, 0, 7); g.stroke();
+      g.beginPath(); g.arc(h, h, 76, 0, 7); g.stroke();
+      g.strokeStyle = 'rgba(255,255,255,0.85)';
+      g.lineWidth = 4;
+      g.beginPath(); g.arc(h, h, 66, 0, 7); g.stroke();
       if (inner) {
         g.font = /^[A-Z]$/.test(inner) ? `bold 86px ${G.FONT}` : `76px ${G.EMOJI_FONT}`;
         g.textAlign = 'center';
